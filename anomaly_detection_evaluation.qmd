@@ -1,0 +1,614 @@
+---
+title: "Image Retrieval"
+date: today
+date-format: long
+author: "Steven  Ndung'u et al."
+format:
+  html:
+    toc: false
+    toc-depth: 3
+    toc-location: left
+    page-layout: full
+    theme:
+          light: flatly
+          dark: darkly
+    number-sections: false
+    highlighting: true
+    smooth-scroll: true
+    code-fold: true
+    highlighting-style: GitHub
+    self-contained: true
+execute:
+    echo: true
+    warning: false
+    enable: true
+
+title-block-banner: true
+
+---
+
+```{=html}
+<style type="text/css">
+
+h1.title {
+  font-size: 0px;
+  color: White;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 16px;
+  font-family: "Source Sans Pro Semibold", Times, serif;
+  color: Red;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 16px;
+  font-family: "Source Sans Pro Semibold", Times, serif;
+  color: Red;
+  text-align: center;
+}
+</style>
+```
+
+------------------------------------------------------------------------
+:::{.column-page}
+
+::: {style="text-align:center"}
+<h2>Model Evaluation COSFIRE Filters Approach</h2>
+:::
+
+</br>
+
+# Introduction
+
+We obtain the 32 sets of train and test descriptors based on the following set of hyperparameters search space:
+
+
+
+```{python}
+#| echo: false
+#| code-fold: false
+#| 
+###################################################
+
+###################################################
+#$Env:QUARTO_PYTHON = "C:\Users\P307791\Anaconda3\python.exe"
+import os
+os.environ['PYTHONHASHSEED'] = 'python'
+from scipy import stats
+
+from IPython.display import display, Markdown, HTML
+from itables import init_notebook_mode
+init_notebook_mode(all_interactive=True)
+from itables import show
+
+import torch.nn as nn
+
+import plotly.express as px
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.io as pio
+#pio.renderers.default = "notebook"
+
+import pandas as pd
+import numpy as np
+import re
+from scipy import stats
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+def find_max(row):
+    return row.max()
+
+
+def colsum(x):
+    return sum(np.isnan(x))
+
+def extract_number(text):
+    if isinstance(text, str):
+        matches = re.findall(r'\d+', text)
+        return int(matches[0]) if matches else 1
+    return 1
+
+def summary_stats_func(df):
+        """
+        Compute summary statistics on the dataframe.
+        
+        If there are multiple columns, this function computes the mean and std
+        of the column-wise average. Otherwise, it returns the mean and std directly.
+        """
+        if len(df.columns) > 1:
+            df_mean = df.describe().iloc[1:2]
+            df_mean_T = df_mean.T.reset_index()
+            df_mean_T.columns = ['descript_id', 'average_gmean']
+            stats_desc = df_mean_T.describe().iloc[1:3]
+            res = list(stats_desc.average_gmean)
+        else:
+            df_mean = df.describe().iloc[1:3]
+            df_mean_T = df_mean.T.reset_index()
+            df_mean_T.columns = ['index', 'average_mean', 'average_std']
+            res = (df_mean_T['average_mean'].iloc[0], df_mean_T['average_std'].iloc[0])
+        return np.round(res[0], 2), np.round(res[1], 2)
+
+```
+
+
+
+::: {.callout-tip}
+
+Each row represents a unique combination of LOF hyperparameters, and every column represents the results yielded by each of the 32 set of descriptors. 
+
+:::
+
+</br>
+
+::: {.panel-tabset}
+
+## XXXX
+
+#### Results Preview:
+
+```{python}
+
+file_path = "model_evaluation_LOF_results_01022025_without_outliers_train_FRGADB_cleaned_v2_valid_test_normalized_n5_filters.csv"
+dt = pd.read_csv(file_path)
+num_filters = 90
+dt = dt.query(f'num_filters in [{num_filters}]')
+```
+
+
+
+```{python}
+#| echo: false
+#| code-fold: false
+#| 
+html_table = dt.to_html(index=True)
+
+# Wrap in a scrollable div
+scrollable_table = f"""
+<div style="height: 400px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+```
+</br>
+
+
+
+</br>
+
+Determine Significant descriptors from validation data
+
+```{python}
+#| echo: false
+#| code-fold: false
+
+valid_desc_stats = dt.describe().iloc[1:2]
+valid_desc_stats = valid_desc_stats[ dt.columns[dt.columns.str.startswith('gmean_score_valid')]]
+valid_desc_stats_T = valid_desc_stats.T.sort_values(by='mean', ascending=False)
+best_descriptor_df = valid_desc_stats_T.reset_index()
+best_descriptor_df.columns = ['descript_id', 'average_gmean']
+best_descriptor_name = best_descriptor_df['descript_id'].iloc[0]
+best_gmean_average = best_descriptor_df['average_gmean'].iloc[0]
+#print((best_descriptor_name,best_gmean_average))
+
+pvalues_dp = []
+pvalues_real_dp = []
+sig_descriptor = pd.DataFrame()
+
+valid_columns = valid_desc_stats.columns
+for col in valid_columns:        
+    if (len(dt[best_descriptor_name])) >= 30:
+        _, p_val_dp = stats.ttest_ind(dt[best_descriptor_name], dt[col], alternative='greater')
+    else:
+        _, p_val_dp = stats.mannwhitneyu(dt[best_descriptor_name], dt[col], alternative='greater')
+
+    pvalues_real_dp.append(p_val_dp)
+    pvalues_dp.append(1 if p_val_dp >= 0.05 else 0)
+    if p_val_dp >= 0.05:
+        sig_descriptor[col] = dt[col]
+
+# Create a list of significant test result column names based on valid descriptors
+significant_results = [f'gmean_score_test_{extract_number(col)}' for col in sig_descriptor.columns]   
+
+
+
+# -------------------------------
+# Determine Significant Hyperparameters from Validation Data
+# -------------------------------
+# Select only columns that are significant
+# if len(sig_descriptor.columns) > 1:
+dt_sub = dt[sig_descriptor.columns]#dt.loc[:, dt.columns.str.startswith('gmean_score_valid')].copy()
+# Compute the row-wise average and add as a new column
+dt_sub['average_gmean_score_valid'] = dt_sub.mean(axis=1)
+dt_sub.sort_values(by='average_gmean_score_valid', ascending=False, inplace=True)
+
+# Pick the top 10 best LOF hyperparams validation indices
+dt_sub_sig = dt_sub.head(10)
+optimal_params = dt.loc[dt_sub_sig.index].copy()
+
+# # Identify the best row (with the maximum average)
+# max_index = dt_sub['average_gmean_score_valid'].idxmax()
+# max_row = dt_sub.loc[max_index]
+
+# # Perform a one-sided t-test (alternative='greater') between max_row and each row
+# pvalues_t = []
+# pvalues_real_t = []
+# for idx in dt_sub.index:
+#     # Exclude the average column (last column) from the t-test
+#     _, p_val = stats.mannwhitneyu(max_row[:-1], dt_sub.loc[idx][:-1], alternative='greater')
+#     pvalues_real_t.append(p_val)
+#     pvalues_t.append(1 if p_val >= 0.05 else 0)
+
+# # Append t-test results as new columns
+# dt_sub['pvalues_t'] = pvalues_real_t
+# dt_sub['sig_t'] = pvalues_t
+
+# # Filter for rows with significant results (sig_t == 1)
+# dt_sub_sig = dt_sub.query('sig_t == 1')
+
+
+# print('Size of the original data: ',dt_sub.shape)
+# print('Size of the significant data: ',dt_sub_sig.shape)
+
+```
+</br>
+Significant hyperparameter set and their performance - valid data. 
+
+```{python}
+#| echo: false
+#| code-fold: false
+
+
+html_table = dt_sub_sig.to_html(index=True)
+
+# Wrap in a scrollable div
+scrollable_table = f"""
+<div style="height: 400px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+
+```
+
+
+</br>
+
+Equivalent hyperparameter set and their performance - test data.
+
+```{python}
+
+
+
+####################################################
+# Use the hyperparameters to the test data.
+####################################################
+# -------------------------------
+# Evaluate Hyperparameters on Test Data
+# -------------------------------
+# Extract rows corresponding to significant validation indices from original dt
+optimal_params = dt.loc[dt_sub_sig.index].copy()
+
+# Extract test columns that are significant based on validation data 
+test_res = optimal_params[significant_results]
+
+test_res_summary = (
+         test_res.describe().iloc[1:3]
+         .T.reset_index()
+      )
+
+html_table = test_res.to_html(index=True)
+scrollable_table = f"""
+<div style="height: 400px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+
+
+
+
+```
+</br>
+</br>
+Averages:
+
+```{python}
+test_res_summary.columns = ['descript_id', 'gmean', 'std']
+test_res_summary['id'] = test_res_summary['descript_id'].apply(extract_number)
+test_res_summary.sort_values(by='gmean', inplace=True)
+# Extract test results corresponding to significant descriptors
+df_significant_descriptors = optimal_params[significant_results]
+gmean, std  = summary_stats_func(df_significant_descriptors)
+
+
+
+html_table = test_res_summary.to_html(index=True)
+scrollable_table = f"""
+<div style="height: 200px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+
+
+print(f'The average Gmean on test data is {np.round(gmean,2)} with a standard deviation of {std} ')
+```
+
+</br>
+</br>
+
+```{python}
+
+gmean_specificity, std_specificity  = summary_stats_func(optimal_params[[f'specificity_test_{extract_number(col)}' for col in sig_descriptor.columns]])
+
+gmean_f1_score, std_f1_score  = summary_stats_func(optimal_params[[f'f1_score_test_{extract_number(col)}' for col in sig_descriptor.columns]])
+
+gmean_recall, std_recall  = summary_stats_func(optimal_params[[f'recall_test_{extract_number(col)}' for col in sig_descriptor.columns]])
+
+print(f'& COSFIRE & {gmean} $\pm$ {std} & {gmean_f1_score} $\pm$ {std_f1_score} & {gmean_specificity} $\pm$ {std_specificity} & {gmean_recall} $\pm$ {std_recall}')
+
+
+# df = pd.read_csv('results_summary_final_TL.csv')
+# df.sort_values(by='gmean_valid',ascending=False,inplace=True)
+# dd = df.head(10)
+
+# html_table = dd.to_html(index=True)
+# scrollable_table = f"""
+# <div style="height: 200px; width: 100%; overflow-x: auto; overflow-y: auto;">
+#     {html_table}
+# </div>
+# """
+# # Display the scrollable table
+# display(HTML(scrollable_table))
+```
+
+</br>
+</br>
+
+![Plot of filters vs G-mean](output.png)
+
+
+## XXXerwt
+
+
+#### Results Preview:
+
+```{python}
+
+file_path = "model_evaluation_LOF_results_18022025_2_without_outliers_train_FRGADB_cleaned_v4_valid_test_normalized_n_filters.csv"
+dt = pd.read_csv(file_path)
+num_filters = 67
+dt = dt.query(f'num_filters in [{num_filters}]')
+```
+
+
+
+```{python}
+#| echo: false
+#| code-fold: false
+#| 
+html_table = dt.to_html(index=True)
+
+# Wrap in a scrollable div
+scrollable_table = f"""
+<div style="height: 400px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+```
+</br>
+
+
+
+</br>
+
+Determine Significant descriptors from validation data
+
+```{python}
+#| echo: false
+#| code-fold: false
+
+valid_desc_stats = dt.describe().iloc[1:2]
+valid_desc_stats = valid_desc_stats[ dt.columns[dt.columns.str.startswith('gmean_score_valid')]]
+valid_desc_stats_T = valid_desc_stats.T.sort_values(by='mean', ascending=False)
+best_descriptor_df = valid_desc_stats_T.reset_index()
+best_descriptor_df.columns = ['descript_id', 'average_gmean']
+best_descriptor_name = best_descriptor_df['descript_id'].iloc[0]
+best_gmean_average = best_descriptor_df['average_gmean'].iloc[0]
+#print((best_descriptor_name,best_gmean_average))
+
+pvalues_dp = []
+pvalues_real_dp = []
+sig_descriptor = pd.DataFrame()
+
+valid_columns = valid_desc_stats.columns
+for col in valid_columns:        
+    if (len(dt[best_descriptor_name])) >= 30:
+        _, p_val_dp = stats.ttest_ind(dt[best_descriptor_name], dt[col], alternative='greater')
+    else:
+        _, p_val_dp = stats.mannwhitneyu(dt[best_descriptor_name], dt[col], alternative='greater')
+
+    pvalues_real_dp.append(p_val_dp)
+    pvalues_dp.append(1 if p_val_dp >= 0.05 else 0)
+    if p_val_dp >= 0.05:
+        sig_descriptor[col] = dt[col]
+
+# Create a list of significant test result column names based on valid descriptors
+significant_results = [f'gmean_score_test_{extract_number(col)}' for col in sig_descriptor.columns]   
+
+
+
+# -------------------------------
+# Determine Significant Hyperparameters from Validation Data
+# -------------------------------
+# Select only columns that are significant
+# if len(sig_descriptor.columns) > 1:
+dt_sub = dt[sig_descriptor.columns]#dt.loc[:, dt.columns.str.startswith('gmean_score_valid')].copy()
+# Compute the row-wise average and add as a new column
+dt_sub['average_gmean_score_valid'] = dt_sub.mean(axis=1)
+dt_sub.sort_values(by='average_gmean_score_valid', ascending=False, inplace=True)
+
+# Pick the top 10 best LOF hyperparams validation indices
+dt_sub_sig = dt_sub.head(10)
+optimal_params = dt.loc[dt_sub_sig.index].copy()
+
+# # Identify the best row (with the maximum average)
+# max_index = dt_sub['average_gmean_score_valid'].idxmax()
+# max_row = dt_sub.loc[max_index]
+
+# # Perform a one-sided t-test (alternative='greater') between max_row and each row
+# pvalues_t = []
+# pvalues_real_t = []
+# for idx in dt_sub.index:
+#     # Exclude the average column (last column) from the t-test
+#     _, p_val = stats.mannwhitneyu(max_row[:-1], dt_sub.loc[idx][:-1], alternative='greater')
+#     pvalues_real_t.append(p_val)
+#     pvalues_t.append(1 if p_val >= 0.05 else 0)
+
+# # Append t-test results as new columns
+# dt_sub['pvalues_t'] = pvalues_real_t
+# dt_sub['sig_t'] = pvalues_t
+
+# # Filter for rows with significant results (sig_t == 1)
+# dt_sub_sig = dt_sub.query('sig_t == 1')
+
+
+# print('Size of the original data: ',dt_sub.shape)
+# print('Size of the significant data: ',dt_sub_sig.shape)
+
+```
+</br>
+Significant hyperparameter set and their performance - valid data. 
+
+```{python}
+#| echo: false
+#| code-fold: false
+
+
+html_table = dt_sub_sig.to_html(index=True)
+
+# Wrap in a scrollable div
+scrollable_table = f"""
+<div style="height: 400px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+
+```
+
+
+</br>
+
+Equivalent hyperparameter set and their performance - test data.
+
+```{python}
+
+
+
+####################################################
+# Use the hyperparameters to the test data.
+####################################################
+# -------------------------------
+# Evaluate Hyperparameters on Test Data
+# -------------------------------
+# Extract rows corresponding to significant validation indices from original dt
+optimal_params = dt.loc[dt_sub_sig.index].copy()
+
+# Extract test columns that are significant based on validation data 
+test_res = optimal_params[significant_results]
+
+test_res_summary = (
+         test_res.describe().iloc[1:3]
+         .T.reset_index()
+      )
+
+html_table = test_res.to_html(index=True)
+scrollable_table = f"""
+<div style="height: 400px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+
+
+
+
+```
+</br>
+</br>
+Averages:
+
+```{python}
+test_res_summary.columns = ['descript_id', 'gmean', 'std']
+test_res_summary['id'] = test_res_summary['descript_id'].apply(extract_number)
+test_res_summary.sort_values(by='gmean', inplace=True)
+# Extract test results corresponding to significant descriptors
+df_significant_descriptors = optimal_params[significant_results]
+gmean, std  = summary_stats_func(df_significant_descriptors)
+
+
+
+html_table = test_res_summary.to_html(index=True)
+scrollable_table = f"""
+<div style="height: 200px; width: 100%; overflow-x: auto; overflow-y: auto;">
+    {html_table}
+</div>
+"""
+# Display the scrollable table
+display(HTML(scrollable_table))
+
+
+print(f'The average Gmean on test data is {np.round(gmean,2)} with a standard deviation of {std} ')
+```
+
+</br>
+</br>
+
+```{python}
+
+gmean_specificity, std_specificity  = summary_stats_func(optimal_params[[f'specificity_test_{extract_number(col)}' for col in sig_descriptor.columns]])
+
+gmean_f1_score, std_f1_score  = summary_stats_func(optimal_params[[f'f1_score_test_{extract_number(col)}' for col in sig_descriptor.columns]])
+
+gmean_recall, std_recall  = summary_stats_func(optimal_params[[f'recall_test_{extract_number(col)}' for col in sig_descriptor.columns]])
+
+print(f'& COSFIRE & {gmean} $\pm$ {std} & {gmean_f1_score} $\pm$ {std_f1_score} & {gmean_specificity} $\pm$ {std_specificity} & {gmean_recall} $\pm$ {std_recall}')
+
+
+# df = pd.read_csv('results_summary_final_TL.csv')
+# df.sort_values(by='gmean_valid',ascending=False,inplace=True)
+# dd = df.head(10)
+
+# html_table = dd.to_html(index=True)
+# scrollable_table = f"""
+# <div style="height: 200px; width: 100%; overflow-x: auto; overflow-y: auto;">
+#     {html_table}
+# </div>
+# """
+# # Display the scrollable table
+# display(HTML(scrollable_table))
+```
+
+</br>
+</br>
+
+![Plot of filters vs G-mean](output.png)
+:::
+:::
+
+
+
