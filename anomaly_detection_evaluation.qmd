@@ -146,9 +146,21 @@ Each row represents a unique combination of LOF hyperparameters, and every colum
 
 ::: {.panel-tabset}
 
-## XXXX
+## Without Synthetic Anomalies
 
-#### Results Preview:
+The FRGADB dataset is composed of $\sim1000$ samples with four classes of galaxy sources: FRI (211 samples), FRII (523 samples), XRG (44 samples), and RRG (25 samples), distributed between train and test sets (see table below). The images are of size $150\times150$ pixels with the radio sources centered in the images.
+
+| **Galaxy type** | **Sample size** | **Train** | **Test** |
+|-----------------|-----------------|-----------|----------|
+| FRI             | 211             | 189       | 22       |
+| FRII            | 523             | 470       | 53       |
+| XRG             | 44              | 22        | 22       |
+| RRG             | 25              | 12        | 13       |
+| **Total**       | **803**         | **693**   | **110**  |
+
+: **The distribution of the original dataset spread across the training, validation and testing images.** {#tbl-original-dataset}
+
+#### Validation Results Preview:
 
 ```{python}
 
@@ -377,10 +389,34 @@ print(f'& COSFIRE & {gmean} $\pm$ {std} & {gmean_f1_score} $\pm$ {std_f1_score} 
 ![Plot of filters vs G-mean](output.png)
 
 
-## XXXerwt
+## With Synthetic Anomalies
+
+we generated 90 synthetic anomalous samples from training images to replace the 22 XRG and 12 RRG galaxies in the validation set \cite{schluter2022natural}. The new validation set comprises 22 FRI, 53 FRII, and 90 anomalous galaxies. The 90 synthetic galaxies were generated through a systematic process using the training set. First, 10 FRI image pairs were randomly selected without replacement. One image from each pair underwent rotations of 90°, 180°, and 270°, followed by superimposition with its partner using maximum pixel values. This created 30 anomalous sources. The same procedure was applied to 10 FRII pairs and 10 hybrid pairs (FRI-FRII combinations), yielding a total of 90 anomalous images. Therefore the new training set consisted of 137 FRI and 387 FRII.
 
 
-#### Results Preview:
+::: {#tbl-dataset-distribution .table-responsive}
+| Galaxy type | Total Samples | Training | Validation | Test |
+|-------------|---------------|----------|------------|------|
+| FRI         | 211           | 167      | 22         | 22   |
+| FRII        | 523           | 417      | 53         | 53   |
+| XRG         | 44            | -        | 90^β^      | 22   |
+| RRG         | 25            | -        | *          | 13   |
+| **Total**   | **803**       | **584**  | **165**    | **110** |
+
+: Distribution of the data set across training, validation and test sets for each galaxy type. The 90^β^ represents the synthetic galaxies generated for validation. {#tbl-dataset-distribution}
+:::
+
+</br>
+Example of synthetic images generated from the training set. Note that `image 1` and `image 2` are the original training set images. The superimposed image is the resultant image after superimposition of the rotated version of `image 1` and the original `image 2` using the maximum pixel values, for the example illustrated. (See the paper for detailed explanation)
+
+
+![Synthetic image example 1](Synthetic_image_example1.png)
+
+![Synthetic image example 2](Synthetic_image_example2.png)
+
+![Synthetic image example 3](Synthetic_image_example3.png)
+
+#### Validation Results Preview:
 
 ```{python}
 
