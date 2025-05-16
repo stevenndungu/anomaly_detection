@@ -35,3 +35,4 @@ Note:
 - The final results are stored in the **[results](./results)** folder. The data is processed and analyzed in the **[anomaly_detection_evaluation.qmd](./anomaly_detection_evaluation.qmd)** file. Refer to **[Anomaly detection GitHub Page](https://stevenndungu.github.io/anomaly_detection/)** for more details.
 
 - To determine the best number of COSFIRE filters, refer to the **[optimal_number_of_COSFIRE_filters_per_class_analyses.py](./processing_scripts/optimal_number_of_COSFIRE_filters_per_class_analyses.py)** script.
+
