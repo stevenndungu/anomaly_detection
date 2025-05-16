@@ -1,8 +1,8 @@
 ---
-title: "Image Retrieval"
+title: "Anomaly Detection"
 date: today
 date-format: long
-author: "Steven  Ndung'u et al."
+author: "Steven Ndung’u, Trienko Grobler, Stefan J. Wijnholds, and George Azzopardi"
 format:
   html:
     toc: false
@@ -54,15 +54,16 @@ h4.date { /* Header 4 - and the author and data headers use this too  */
 :::{.column-page}
 
 ::: {style="text-align:center"}
-<h2>Model Evaluation COSFIRE Filters Approach</h2>
+<h2>Paper title: Anomaly detection in radio galaxy data with trainable
+COSFIRE filters</h2>
 :::
 
 </br>
 
 # Introduction
 
-We obtain the 32 sets of train and test descriptors based on the following set of hyperparameters search space:
-
+The code in this notebook is used to evaluate the performance of the COSFIRE filters on the FRGADB dataset. The evaluation is done using the G-mean metric, which is a measure of the balance between sensitivity and specificity. The code also includes statistical tests to determine the significance of the results.
+The evaluation is done on two datasets: the original dataset and the dataset with synthetic anomalies. The results are presented in tables and plots.
 
 
 ```{python}
@@ -136,17 +137,14 @@ def summary_stats_func(df):
 
 
 
-::: {.callout-tip}
-
-Each row represents a unique combination of LOF hyperparameters, and every column represents the results yielded by each of the 32 set of descriptors. 
-
-:::
 
 </br>
 
 ::: {.panel-tabset}
 
 ## Without Synthetic Anomalies
+
+### Dataset Description
 
 The FRGADB dataset is composed of $\sim1000$ samples with four classes of galaxy sources: FRI (211 samples), FRII (523 samples), XRG (44 samples), and RRG (25 samples), distributed between train and test sets (see table below). The images are of size $150\times150$ pixels with the radio sources centered in the images.
 
@@ -159,6 +157,8 @@ The FRGADB dataset is composed of $\sim1000$ samples with four classes of galaxy
 | **Total**       | **803**         | **693**   | **110**  |
 
 : **The distribution of the original dataset spread across the training, validation and testing images.** {#tbl-original-dataset}
+
+
 
 #### Validation Results Preview:
 
@@ -395,15 +395,19 @@ we generated 90 synthetic anomalous samples from training images to replace the 
 
 
 ::: {#tbl-dataset-distribution .table-responsive}
-| Galaxy type | Total Samples | Training | Validation | Test |
-|-------------|---------------|----------|------------|------|
-| FRI         | 211           | 167      | 22         | 22   |
-| FRII        | 523           | 417      | 53         | 53   |
-| XRG         | 44            | -        | 90^β^      | 22   |
-| RRG         | 25            | -        | *          | 13   |
-| **Total**   | **803**       | **584**  | **165**    | **110** |
+| **Galaxy Type** | **Total Samples** | **Training** | **Validation** | **Test** |
+|-----------------|-------------------|--------------|----------------|----------|
+| *Regular classes* |                 |              |                |          |
+| FRI             | 211               | 137          | 22             | 22       |
+| FRII            | 523               | 387          | 53             | 53       |
+| **Synthetic anomalies** |          |              | 90             |          |
+| *Anomalous classes (test only)* |   |              |                |          |
+| XRG             | 44                | --           | --             | 22       |
+| RRG             | 25                | --           | --             | 13       |
+| **Total**       | 803               | 584          | 165            | 110      |
 
-: Distribution of the data set across training, validation and test sets for each galaxy type. The 90^β^ represents the synthetic galaxies generated for validation. {#tbl-dataset-distribution}
+: Distribution of the data set across training, validation, and test sets for each galaxy type. Note that XRG
+and RRG are used only in the test set. 
 :::
 
 </br>
