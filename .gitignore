@@ -25,4 +25,5 @@ Gemfile.lock
 /Galaxy_recognition
 /libsvm_3_21
 .DS_Store
-*.m
+getSimpleCellResponse.m
+getDoG.m

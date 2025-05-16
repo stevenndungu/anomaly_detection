@@ -28,10 +28,10 @@ Download the complete **[COSFIRE Algorithm code](https://zenodo.org/me/uploads)*
 
 Note:
 
-- The script to generate synthetic anomalies:  **[synthetic_images_creation.py](./processing_scripts/synthetic_images_creation.py)** 
+- The script to generate synthetic anomalies: **[synthetic_images_creation.py](./processing_scripts/synthetic_images_creation.py)** 
 
 - We have provided the descriptors for the training, validation, and test sets in the **[descriptors](./descriptors)** folder. You can use them directly without running the COSFIRE algorithm again.
 
-- The final results are stored in the **[results](./results)** folder. The data is processed and analysed in the **[anomaly_detection_evaluation.qmd](./anomaly_detection_evaluation.qmd)** file. Refer to the refer to **[Anomaly detection GitHub Page](https://stevenndungu.github.io/anomaly_detection/)** for more details.
+- The final results are stored in the **[results](./results)** folder. The data is processed and analyzed in the **[anomaly_detection_evaluation.qmd](./anomaly_detection_evaluation.qmd)** file. Refer to **[Anomaly detection GitHub Page](https://stevenndungu.github.io/anomaly_detection/)** for more details.
 
-- To determine the best number of COSFIRE filters, refer to the **[optimal_number_of_COSFIRE_filters_per_class_analyses.py](./processing_scripts/optimal_number_of_COSFIRE_filters_per_class_analyses.py)** script. 
+- To determine the best number of COSFIRE filters, refer to the **[optimal_number_of_COSFIRE_filters_per_class_analyses.py](./processing_scripts/optimal_number_of_COSFIRE_filters_per_class_analyses.py)** script.
