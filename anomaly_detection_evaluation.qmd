@@ -646,7 +646,6 @@ print(f'& COSFIRE & {gmean} $\pm$ {std} & {gmean_f1_score} $\pm$ {std_f1_score} 
 </br>
 </br>
 
-![Plot of filters vs G-mean](output.png)
 :::
 :::
 
