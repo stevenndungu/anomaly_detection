@@ -164,7 +164,7 @@ The FRGADB dataset is composed of $\sim1000$ samples with four classes of galaxy
 
 ```{python}
 
-file_path = "model_evaluation_LOF_results_01022025_without_outliers_train_FRGADB_cleaned_v2_valid_test_normalized_n5_filters.csv"
+file_path = "./results/model_evaluation_LOF_results_01022025_without_outliers_train_FRGADB_cleaned_v2_valid_test_normalized_n5_filters.csv"
 dt = pd.read_csv(file_path)
 num_filters = 90
 dt = dt.query(f'num_filters in [{num_filters}]')
@@ -386,7 +386,7 @@ print(f'& COSFIRE & {gmean} $\pm$ {std} & {gmean_f1_score} $\pm$ {std_f1_score} 
 </br>
 </br>
 
-![Plot of filters vs G-mean](output.png)
+
 
 
 ## With Synthetic Anomalies
@@ -424,7 +424,7 @@ Example of synthetic images generated from the training set. Note that `image 1`
 
 ```{python}
 
-file_path = "model_evaluation_LOF_results_18022025_2_without_outliers_train_FRGADB_cleaned_v4_valid_test_normalized_n_filters.csv"
+file_path = "./results/model_evaluation_LOF_results_18022025_2_without_outliers_train_FRGADB_cleaned_v4_valid_test_normalized_n_filters.csv"
 dt = pd.read_csv(file_path)
 num_filters = 67
 dt = dt.query(f'num_filters in [{num_filters}]')
