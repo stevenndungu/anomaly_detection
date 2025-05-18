@@ -2,7 +2,7 @@
 
 This is the official repository for the paper 'Anomaly detection in radio galaxy data with trainable COSFIRE filters'
 
-Download the complete **[COSFIRE Algorithm code](https://zenodo.org/uploads/15447077)** 
+Download the complete **[COSFIRE Algorithm code](https://drive.google.com/drive/folders/1Sp5EyphabSaM-K_aWzg4uDNdEy7AdKGE?usp=sharing)** 
 
 1. Navigate to the cosfire_rg_classification > Application directory and set it as your current working directory.
 
